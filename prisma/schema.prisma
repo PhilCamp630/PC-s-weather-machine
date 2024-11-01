@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  email     String     @unique
+  password  String
+  name      String?
+  posts     Post[]
+  locations Location[]
+  comments  Comment[] // Added relationship to comments
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+  postId    Int
+  post      Post     @relation(fields: [postId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Tag {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  posts Post[] @relation("PostTags")
+}
+
+model Post {
+  id         Int       @id @default(autoincrement())
+  title      String
+  content    String
+  createdAt  DateTime  @default(now())
+  locationId Int
+  location   Location  @relation(fields: [locationId], references: [id])
+  tags       Tag[]     @relation("PostTags")
+  comments   Comment[] // Added relationship to comments
+  User       User?     @relation(fields: [userId], references: [id])
+  userId     Int?
+}
+
+model Location {
+  id              Int           @id @default(autoincrement())
+  name            String
+  region          String
+  country         String
+  lat             Float
+  lon             Float
+  tz_id           String
+  localtime_epoch Int
+  localtime       String
+  currents        Current[] // A location can have multiple current weather entries
+  forecastDays    ForecastDay[] // A location can have multiple forecast days
+  User            User?         @relation(fields: [userId], references: [id])
+  userId          Int?
+  Post            Post[]
+}
+
+model Current {
+  id                 Int       @id @default(autoincrement())
+  last_updated_epoch Int
+  last_updated       String // Example: "2024-10-31 19:30"
+  temp_c             Float
+  temp_f             Float
+  is_day             Boolean
+  conditionId        Int
+  condition          Condition @relation(fields: [conditionId], references: [id])
+  locationId         Int
+  location           Location  @relation(fields: [locationId], references: [id]) // Links to Location
+}
+
+model Condition {
+  id       Int       @id @default(autoincrement())
+  text     String
+  icon     String
+  code     Int
+  currents Current[] // A condition can relate to multiple Current entries
+  days     Day[] // A condition can relate to multiple Day entries
+}
+
+model ForecastDay {
+  id         Int          @id @default(autoincrement())
+  date       String // Example: "2024-10-31"
+  date_epoch Int
+  day        Day          @relation(fields: [dayId], references: [id])
+  dayId      Int
+  locationId Int
+  location   Location     @relation(fields: [locationId], references: [id]) // Links to Location
+  AirQuality AirQuality[]
+}
+
+model Day {
+  id                   Int           @id @default(autoincrement())
+  max_temp_c           Float
+  max_temp_f           Float
+  min_temp_c           Float
+  min_temp_f           Float
+  avg_temp_c           Float
+  avg_temp_f           Float
+  max_wind_mph         Float
+  max_wind_kph         Float
+  total_precip_mm      Float
+  total_precip_in      Float
+  total_snow_cm        Float
+  avg_vis_km           Float
+  avg_vis_miles        Float
+  avg_humidity         Int
+  daily_will_it_rain   Boolean
+  daily_chance_of_rain Int
+  daily_will_it_snow   Boolean
+  daily_chance_of_snow Int
+  uv                   Float
+  air_quality_id       Int
+  air_quality          AirQuality    @relation(fields: [air_quality_id], references: [id]) // Links to AirQuality
+  conditionId          Int
+  condition            Condition     @relation(fields: [conditionId], references: [id]) // Links to Condition
+  ForecastDay          ForecastDay[]
+}
+
+model AirQuality {
+  id             Int         @id @default(autoincrement())
+  co             Float
+  no2            Float
+  o3             Float
+  so2            Float
+  pm2_5          Float
+  pm10           Float
+  us_epa_index   Int
+  gb_defra_index Int
+  forecastDayId  Int
+  forecastDay    ForecastDay @relation(fields: [forecastDayId], references: [id]) // Links to ForecastDay
+  Day            Day[]
+}
